@@ -92,7 +92,16 @@ class App:
                 return fig
 
             def get_plot():
-                documents, vectors, colors = DealAgentFramework.get_plot_data(max_datapoints=800)
+                documents, vectors, colors = DealAgentFramework.get_plot_data(
+                    max_datapoints=800
+                )
+                if vectors.shape[0] == 0:
+                    fig = go.Figure()
+                    fig.update_layout(
+                        title="No embeddings in Chroma yet — build products_vectorstore (week 8 setup).",
+                        height=400,
+                    )
+                    return fig
                 # Create the 3D scatter plot
                 fig = go.Figure(
                     data=[

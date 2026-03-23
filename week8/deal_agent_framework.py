@@ -106,11 +106,27 @@ class DealAgentFramework:
         result = collection.get(
             include=["embeddings", "documents", "metadatas"], limit=max_datapoints
         )
-        vectors = np.array(result["embeddings"])
+        raw_emb = result["embeddings"]
+        if raw_emb is None:
+            return [], np.zeros((0, 3)), []
+        vectors = np.asarray(raw_emb, dtype=np.float64)
+        # Chroma may return a numpy array; avoid `if not arr` (ambiguous on ndarrays)
+        if vectors.size == 0:
+            return [], np.zeros((0, 3)), []
         documents = result["documents"]
         categories = [metadata["category"] for metadata in result["metadatas"]]
         colors = [COLORS[CATEGORIES.index(c)] for c in categories]
-        tsne = TSNE(n_components=3, random_state=42, n_jobs=-1)
+        n = vectors.shape[0]
+        # TSNE requires perplexity < n_samples; single point has no embedding layout to learn
+        if n < 2:
+            return documents, np.zeros((n, 3)), colors
+        perplexity = float(min(30, n - 1))
+        tsne = TSNE(
+            n_components=3,
+            random_state=42,
+            n_jobs=-1,
+            perplexity=perplexity,
+        )
         reduced_vectors = tsne.fit_transform(vectors)
         return documents, reduced_vectors, colors
 
